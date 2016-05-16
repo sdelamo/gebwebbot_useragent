@@ -33,6 +33,10 @@ dependencies {
     }
 }
 
+task wrapper(type: Wrapper) {
+    gradleVersion = '2.9'
+}
+
 codenarcMain {
     ignoreFailures false
     configFile file('codenarc/codenarc.groovy')
