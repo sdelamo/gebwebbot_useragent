@@ -1,0 +1,78 @@
+import org.apache.tools.ant.taskdefs.condition.Os
+
+ext {
+    drivers = ['phantomJs']
+
+    groovyVersion = '2.4.6'
+    spockCoreVersion = '1.0-groovy-2.4'
+    gebVersion = '0.13.1'
+    seleniumVersion = '2.53.0'
+    chromeDriverVersion = '2.19'
+    phantomJsVersion = '2.1.1'
+    phantomJsDriverVersion = '1.2.1'
+}
+
+apply plugin: "groovy"
+apply plugin: "codenarc"
+apply from: "gradle/osSpecificDownloads.gradle"
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    compile "org.gebish:geb-core:$gebVersion"
+    compile "org.codehaus.groovy:groovy-all:$groovyVersion"
+    testCompile("org.spockframework:spock-core:$spockCoreVersion") {
+        exclude group: "org.codehaus.groovy"
+    }
+    // Drivers
+    compile "org.seleniumhq.selenium:selenium-firefox-driver:$seleniumVersion"
+    compile("com.codeborne:phantomjsdriver:$phantomJsDriverVersion") {
+        transitive = false
+    }
+}
+
+codenarcMain {
+    ignoreFailures false
+    configFile file('codenarc/codenarc.groovy')
+}
+
+codenarcTest {
+    ignoreFailures false
+    configFile file('codenarc/codenarcTest.groovy')
+}
+
+drivers.each { driver ->
+    task "${driver}Test"(type: Test) {
+        reports {
+            html.destination = reporting.file("$name/tests")
+            junitXml.destination = file("$buildDir/test-results/$name")
+        }
+
+        outputs.upToDateWhen { false }  // Always run tests
+
+        systemProperty "geb.build.reportsDir", reporting.file("$name/geb")
+        systemProperty "geb.env", driver
+    }
+}
+
+phantomJsTest {
+    dependsOn setUpPhantomJs
+
+    def phantomJsFilename = Os.isFamily(Os.FAMILY_WINDOWS) ? "phantomjs.exe" : "bin/phantomjs"
+    systemProperty "phantomjs.binary.path", new File(setUpPhantomJs.outputs.files.singleFile, phantomJsFilename).absolutePath
+}
+
+test {
+    dependsOn drivers.collect { tasks["${it}Test"] }
+    enabled = false
+    testLogging {
+        showStandardStreams = true
+    }
+}
+
+configure(phantomJsTest) {
+    group =  JavaBasePlugin.VERIFICATION_GROUP
+}
+
