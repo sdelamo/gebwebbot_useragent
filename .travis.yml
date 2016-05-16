@@ -1,0 +1,13 @@
+language: groovy
+sudo: false
+jdk:
+- oraclejdk8
+before_script:
+- rm -rf target
+- chmod +x gradlew
+- chmod +x travis-build.sh
+script: ./travis-build.sh
+env:
+  global:
+  - GIT_NAME="Sergio del Amo"
+  - GIT_EMAIL="sergio.delamo@softamo.com"
